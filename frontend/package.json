@@ -1,0 +1,27 @@
+{
+  "name": "budgetwise",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "BudgetWise is a simple MEVN web app for tracking income, expenses, goals, and budgets.",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.0",
+    "feather-icons": "^4.29.2",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.22",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "vite": "^7.1.7",
+    "vite-plugin-vue-devtools": "^8.0.2"
+  }
+}
