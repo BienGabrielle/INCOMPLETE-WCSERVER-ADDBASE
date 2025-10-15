@@ -35,13 +35,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="tx in transactions" :key="tx.id">
+          <tr v-for="tx in transactions" :key="tx._id">
             <td>{{ tx.date }}</td>
             <td>{{ tx.category }}</td>
             <td>{{ tx.type }}</td>
             <td>${{ tx.amount.toFixed(2) }}</td>
             <td>
-              <button class="delete-btn" @click="deleteTransaction(tx.id)">Delete</button>
+              <button class="delete-btn" @click="deleteTransaction(tx._id)">Delete</button>
             </td>
           </tr>
         </tbody>
@@ -51,17 +51,13 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
 
 export default {
   name: 'Transactions',
   setup() {
-    const transactions = ref([
-      { id: 1, date: '2025-10-01', category: 'Food', type: 'Expense', amount: 25.5 },
-      { id: 2, date: '2025-10-02', category: 'Salary', type: 'Income', amount: 1500 },
-      { id: 3, date: '2025-10-03', category: 'Transport', type: 'Expense', amount: 50 }
-    ]);
-
+    const transactions = ref([]);
     const newTransaction = ref({
       date: '',
       category: '',
@@ -69,18 +65,37 @@ export default {
       amount: null
     });
 
-    const addTransaction = () => {
-      if (!newTransaction.value.date || !newTransaction.value.category || !newTransaction.value.type || !newTransaction.value.amount) return;
+    const apiUrl = "http://localhost:5000/api/transactions";
 
-      const newTx = { ...newTransaction.value, id: Date.now() };
-      transactions.value.push(newTx);
-
-      newTransaction.value = { date: '', category: '', type: '', amount: null };
+    const fetchTransactions = async () => {
+      try {
+        const res = await axios.get(apiUrl);
+        transactions.value = res.data;
+      } catch (err) {
+        console.error("Error fetching transactions:", err);
+      }
     };
 
-    const deleteTransaction = (id) => {
-      transactions.value = transactions.value.filter(tx => tx.id !== id);
+    const addTransaction = async () => {
+      try {
+        await axios.post(apiUrl, newTransaction.value);
+        await fetchTransactions();
+        newTransaction.value = { date: '', category: '', type: '', amount: null };
+      } catch (err) {
+        console.error("Error adding transaction:", err);
+      }
     };
+
+    const deleteTransaction = async (id) => {
+      try {
+        await axios.delete(`${apiUrl}/${id}`);
+        await fetchTransactions();
+      } catch (err) {
+        console.error("Error deleting transaction:", err);
+      }
+    };
+
+    onMounted(fetchTransactions);
 
     return { transactions, newTransaction, addTransaction, deleteTransaction };
   }

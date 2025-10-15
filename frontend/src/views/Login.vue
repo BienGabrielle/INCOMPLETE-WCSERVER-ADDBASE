@@ -3,20 +3,20 @@
     <div class="login-card">
       <div class="login-header">
         <h2>💰 BudgetWise</h2>
-        <p>Welcome back! Please login to your account.</p>
+        <p>Welcome back! Please log in to your account.</p>
       </div>
 
-      <form class="login-form">
+      <form class="login-form" @submit.prevent="handleLogin">
         <label>Email Address</label>
         <div class="input-group">
           <i data-feather="mail"></i>
-          <input type="email" placeholder="you@example.com" required />
+          <input v-model="email" type="email" placeholder="you@example.com" required />
         </div>
 
         <label>Password</label>
         <div class="input-group">
           <i data-feather="lock"></i>
-          <input type="password" placeholder="••••••••" required />
+          <input v-model="password" type="password" placeholder="••••••••" required />
         </div>
 
         <div class="options">
@@ -26,21 +26,10 @@
 
         <button type="submit" class="btn-primary">Sign in</button>
 
-        <div class="divider">
-          <span>or continue with</span>
-        </div>
-
-        <div class="social-login">
-          <button type="button" class="social-btn">
-            <i data-feather="github"></i>
-          </button>
-          <button type="button" class="social-btn">
-            <i data-feather="facebook"></i>
-          </button>
-        </div>
+        <p v-if="message" class="message">{{ message }}</p>
 
         <p class="signup-text">
-          Don't have an account?
+          Don’t have an account?
           <router-link to="/register">Sign up</router-link>
         </p>
       </form>
@@ -49,13 +38,47 @@
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import feather from "feather-icons";
+import axios from "axios";
+import { inject } from "vue";
+
+const email = ref("");
+const password = ref("");
+const message = ref("");
+const router = useRouter();
+// Use a global login state (provide/inject pattern)
+const setLoggedIn = inject("setLoggedIn", null);
+
+// Backend base URL (adjust if needed)
+const API_BASE = "http://localhost:5000/api/users";
+
+const handleLogin = async () => {
+  try {
+    const response = await axios.post(`${API_BASE}/login`, {
+      email: email.value,
+      password: password.value,
+    });
+
+    message.value = "✅ Login successful! Redirecting...";
+    localStorage.setItem("user", JSON.stringify(response.data.user));
+    if (setLoggedIn) setLoggedIn(true); // update global login state
+    router.push("/dashboard");
+  } catch (error) {
+    console.error("Login error:", error.response || error);
+    message.value = `❌ ${
+      error.response?.data?.message || "Invalid email or password"
+    }`;
+    if (setLoggedIn) setLoggedIn(false);
+  }
+};
 
 onMounted(() => {
   feather.replace();
 });
 </script>
+
 
 <style scoped>
 .login-page {
@@ -147,6 +170,13 @@ label {
 
 .btn-primary:hover {
   opacity: 0.9;
+}
+
+.message {
+  text-align: center;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 
 .divider {

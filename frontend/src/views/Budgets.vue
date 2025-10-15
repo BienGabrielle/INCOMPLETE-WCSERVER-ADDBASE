@@ -6,6 +6,23 @@
       <p>Set limits for each spending category and track your progress.</p>
     </section>
 
+    <!-- Category Balance Feature -->
+    <section class="category-balance">
+      <h2>Category Balance</h2>
+      <form @submit.prevent>
+        <select v-model="selectedCategory" class="category-select">
+          <option disabled value="">Select Category</option>
+          <option v-for="cat in allCategories" :key="cat" :value="cat">{{ cat }}</option>
+        </select>
+      </form>
+      <div v-if="selectedCategory">
+        <p>
+          Balance for <strong>{{ selectedCategory }}</strong>:
+          <span class="balance-amount">${{ getCategoryBalance(selectedCategory).toFixed(2) }}</span>
+        </p>
+      </div>
+    </section>
+
     <!-- Add Budget Form -->
     <section class="add-budget">
       <h2>Add a New Budget</h2>
@@ -21,7 +38,7 @@
     <section class="budget-list">
       <h2>Your Budgets</h2>
       <div v-if="budgets.length > 0" class="budget-container">
-        <div class="budget-card" v-for="budget in budgets" :key="budget.id">
+  <div class="budget-card" v-for="budget in budgets" :key="budget._id">
           <h3>{{ budget.category }}</h3>
           <div class="progress-bar">
             <div
@@ -35,7 +52,7 @@
               ({{ budgetProgress(budget).toFixed(0) }}%)
             </span>
           </p>
-          <button class="delete-btn" @click="deleteBudget(budget.id)">Delete</button>
+          <button class="delete-btn" @click="deleteBudget(budget._id)">Delete</button>
         </div>
       </div>
       <p v-else class="no-data">No budgets added yet. Add one above!</p>
@@ -44,49 +61,130 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import axios from "axios";
+import { ref, onMounted } from "vue";
 
 export default {
-  name: 'Budgets',
+  name: "Budgets",
   setup() {
-    const budgets = ref([
-      { id: 1, category: 'Food', limit: 500, spent: 320 },
-      { id: 2, category: 'Transport', limit: 200, spent: 150 },
-      { id: 3, category: 'Entertainment', limit: 300, spent: 280 }
-    ]);
+    const budgets = ref([]);
+    const newBudget = ref({ category: "", limit: null, spent: 0 });
+    const transactions = ref([]);
+    const selectedCategory = ref("");
+    const API_URL = "http://localhost:5000/api/Budgets";
 
-    const newBudget = ref({
-      category: '',
-      limit: null,
-      spent: 0
-    });
-
-    const addBudget = () => {
-      if (!newBudget.value.category || !newBudget.value.limit) return;
-      const newEntry = { ...newBudget.value, id: Date.now() };
-      budgets.value.push(newEntry);
-      newBudget.value = { category: '', limit: null, spent: 0 };
+    // Fetch all budgets from backend
+    const fetchBudgets = async () => {
+      try {
+        const res = await axios.get(API_URL);
+        budgets.value = res.data;
+      } catch (err) {
+        console.error("❌ Failed to fetch budgets:", err);
+      }
     };
 
-    const deleteBudget = (id) => {
-      budgets.value = budgets.value.filter(b => b.id !== id);
+    // Fetch all transactions from backend
+    const fetchTransactions = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/transactions");
+        transactions.value = res.data;
+      } catch (err) {
+        console.error("❌ Failed to fetch transactions:", err);
+      }
+    };
+
+    // Get all unique categories from budgets and transactions
+    const allCategories = ref([]);
+    const updateCategories = () => {
+      const budgetCats = budgets.value.map(b => b.category);
+      const txCats = transactions.value.map(t => t.category);
+      allCategories.value = Array.from(new Set([...budgetCats, ...txCats])).filter(Boolean);
+      if (!selectedCategory.value && allCategories.value.length > 0) {
+        selectedCategory.value = allCategories.value[0];
+      }
+    };
+
+    // Add a new budget
+    const addBudget = async () => {
+      if (!newBudget.value.category || !newBudget.value.limit) return;
+      try {
+        await axios.post(API_URL, newBudget.value);
+        newBudget.value = { category: "", limit: null, spent: 0 };
+        await fetchBudgets();
+        updateCategories();
+      } catch (err) {
+        console.error("❌ Failed to add budget:", err);
+      }
+    };
+
+    // Delete a budget
+    const deleteBudget = async (id) => {
+      try {
+        await axios.delete(`${API_URL}/${id}`);
+        await fetchBudgets();
+        updateCategories();
+      } catch (err) {
+        console.error("❌ Failed to delete budget:", err);
+      }
+    };
+
+    // Calculate remaining balance for a category: budget limit - expenses
+    const getCategoryBalance = (category) => {
+      if (!category) return 0;
+      const budget = budgets.value.find(b => b.category === category);
+      const expense = transactions.value.filter(tx => tx.category === category && tx.type === "Expense").reduce((sum, tx) => sum + tx.amount, 0);
+      return budget ? budget.limit - expense : 0;
     };
 
     const budgetProgress = (budget) => (budget.spent / budget.limit) * 100;
 
     const getProgressColor = (budget) => {
       const percent = budgetProgress(budget);
-      if (percent < 70) return '#34d399'; // green
-      if (percent < 100) return '#fbbf24'; // yellow
-      return '#ef4444'; // red
+      if (percent < 70) return "#34d399"; // green
+      if (percent < 100) return "#fbbf24"; // yellow
+      return "#ef4444"; // red
     };
 
-    return { budgets, newBudget, addBudget, deleteBudget, budgetProgress, getProgressColor };
-  }
+    onMounted(async () => {
+      await fetchBudgets();
+      await fetchTransactions();
+      updateCategories();
+    });
+
+    return {
+      budgets,
+      newBudget,
+      addBudget,
+      deleteBudget,
+      budgetProgress,
+      getProgressColor,
+      transactions,
+      selectedCategory,
+      allCategories,
+      getCategoryBalance,
+    };
+  },
 };
 </script>
 
 <style scoped>
+/* Category Balance styles */
+.category-balance {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.category-select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 160px;
+  margin-bottom: 10px;
+}
+.balance-amount {
+  font-weight: bold;
+  color: #1e3a8a;
+  font-size: 1.2em;
+}
 .header {
   text-align: center;
   padding: 40px 20px;

@@ -1,24 +1,45 @@
-import express from 'express'
-import mongoose from 'mongoose'
-import cors from 'cors'
-import dotenv from 'dotenv'
+import express from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import cors from "cors";
+import userRoutes from "./routes/userRoutes.js"; // routes
+import transactionRoutes from "./routes/transactionRoutes.js";
+import budgetRoutes from "./routes/budgetRoutes.js";
 
-dotenv.config()
-const app = express()
+dotenv.config();
 
-app.use(cors())
-app.use(express.json())
+const app = express();
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error(err))
+// ✅ Allow JSON requests
+app.use(express.json());
 
-// Example route
-app.get('/', (req, res) => {
-  res.send('BudgetWise Backend Running')
-})
+// ✅ Fix CORS (important for frontend-backend connection)
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "DELETE"], // add DELETE
+    credentials: true,
+  })
+);
 
-// Start server
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
+
+// ✅ MongoDB connection
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((error) => console.error("MongoDB connection failed:", error));
+
+// ✅ API Routes
+app.use("/api/users", userRoutes);
+
+app.use("/api/transactions", transactionRoutes);
+
+app.use("/api/Budgets", budgetRoutes);
+
+
+// ✅ Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -34,17 +34,6 @@
       </div>
     </section>
 
-    <!-- Goals Overview -->
-    <section class="goals-overview">
-      <h2>Goals</h2>
-      <div class="goal-card" v-for="goal in goals" :key="goal.name">
-        <h4>{{ goal.name }}</h4>
-        <div class="progress-bar">
-          <div class="progress" :style="{ width: goal.progress + '%' }"></div>
-        </div>
-        <p>${{ goal.current }} / ${{ goal.target }}</p>
-      </div>
-    </section>
 
     <!-- Recent Transactions -->
     <section class="transactions-overview">
@@ -59,7 +48,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="tx in recentTransactions" :key="tx.id">
+          <tr v-for="tx in recentTransactions" :key="tx._id">
             <td>{{ tx.date }}</td>
             <td>{{ tx.category }}</td>
             <td>{{ tx.type }}</td>
@@ -75,23 +64,19 @@
         <h3>Income vs Expenses</h3>
         <canvas ref="lineChart"></canvas>
       </div>
-      <div class="chart-card">
-        <h3>Expenses by Category</h3>
-        <canvas ref="pieChart"></canvas>
-      </div>
     </section>
 
     <!-- Quick Actions -->
     <section class="actions">
       <router-link to="/transactions" class="button">Add Transaction</router-link>
       <router-link to="/budgets" class="button-outline">Set Budget</router-link>
-      <router-link to="/goals" class="button">Add Goal</router-link>
     </section>
   </div>
 </template>
 
 <script>
 import { ref, onMounted, nextTick } from 'vue';
+import axios from 'axios';
 import {
   Chart,
   LineController,
@@ -121,39 +106,70 @@ export default {
   name: 'Dashboard',
   setup() {
     // Quick stats
-    const totalBalance = ref(5000.0);
-    const monthlyIncome = ref(3000.0);
-    const monthlyExpenses = ref(1200.0);
+    const totalBalance = ref(0);
+    const monthlyIncome = ref(0);
+    const monthlyExpenses = ref(0);
 
-    // Budget Overview (dummy data)
-    const budgets = ref([
-      { category: 'Food', limit: 500, spent: 350, progress: 70 },
-      { category: 'Transport', limit: 200, spent: 150, progress: 75 },
-      { category: 'Entertainment', limit: 300, spent: 100, progress: 33 }
-    ]);
-
-    // Goals Overview (dummy data)
-    const goals = ref([
-      { name: 'Emergency Fund', target: 1000, current: 400, progress: 40 },
-      { name: 'Vacation', target: 1500, current: 600, progress: 40 }
-    ]);
-
-    // Recent Transactions (dummy data)
-    const recentTransactions = ref([
-      { id: 1, date: '2025-10-01', category: 'Food', type: 'Expense', amount: 50 },
-      { id: 2, date: '2025-10-02', category: 'Salary', type: 'Income', amount: 1000 },
-      { id: 3, date: '2025-10-03', category: 'Transport', type: 'Expense', amount: 20 },
-      { id: 4, date: '2025-10-04', category: 'Entertainment', type: 'Expense', amount: 40 }
-    ]);
-
-    // Chart references
+    // Data
+    const budgets = ref([]);
+    const recentTransactions = ref([]);
     const lineChart = ref(null);
     const pieChart = ref(null);
 
-    onMounted(async () => {
-      await nextTick(); // ensures canvases exist before drawing
+    // Fetch budgets and transactions from backend
+    const fetchBudgets = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/Budgets");
+        budgets.value = res.data.map(b => ({
+          ...b,
+          progress: b.limit ? Math.min((b.spent / b.limit) * 100, 100) : 0
+        }));
+      } catch (err) {
+        console.error("Failed to fetch budgets:", err);
+      }
+    };
 
-      // Income vs Expenses Line Chart
+    const fetchTransactions = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/transactions");
+        // Sort by date descending, take latest 5
+        recentTransactions.value = res.data
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 5);
+
+        // Calculate stats
+        const income = res.data.filter(tx => tx.type === "Income").reduce((sum, tx) => sum + tx.amount, 0);
+        const expenses = res.data.filter(tx => tx.type === "Expense").reduce((sum, tx) => sum + tx.amount, 0);
+        monthlyIncome.value = income;
+        monthlyExpenses.value = expenses;
+        totalBalance.value = income - expenses;
+      } catch (err) {
+        console.error("Failed to fetch transactions:", err);
+      }
+    };
+
+    onMounted(async () => {
+      await fetchBudgets();
+      await fetchTransactions();
+      await nextTick();
+
+      // Income vs Expenses Line Chart (monthly summary)
+      // For demo, use weekly split from transactions
+      // You can enhance this to group by week/month
+      const txRes = await axios.get("http://localhost:5000/api/transactions");
+      const txs = txRes.data;
+      // Group by week (simple split for demo)
+      const weeks = [[], [], [], []];
+      txs.forEach(tx => {
+        const day = new Date(tx.date).getDate();
+        if (day <= 7) weeks[0].push(tx);
+        else if (day <= 14) weeks[1].push(tx);
+        else if (day <= 21) weeks[2].push(tx);
+        else weeks[3].push(tx);
+      });
+      const weekIncome = weeks.map(w => w.filter(tx => tx.type === "Income").reduce((sum, tx) => sum + tx.amount, 0));
+      const weekExpenses = weeks.map(w => w.filter(tx => tx.type === "Expense").reduce((sum, tx) => sum + tx.amount, 0));
+
       new Chart(lineChart.value, {
         type: 'line',
         data: {
@@ -163,14 +179,14 @@ export default {
               label: 'Income',
               backgroundColor: 'rgba(102,126,234,0.2)',
               borderColor: '#667eea',
-              data: [800, 700, 900, 600],
+              data: weekIncome,
               fill: true
             },
             {
               label: 'Expenses',
               backgroundColor: 'rgba(236,72,153,0.2)',
               borderColor: '#ec4899',
-              data: [300, 400, 350, 150],
+              data: weekExpenses,
               fill: true
             }
           ]
@@ -179,15 +195,16 @@ export default {
       });
 
       // Expenses by Category Pie Chart
+      const expenseBudgets = budgets.value.filter(b => b.spent > 0);
       new Chart(pieChart.value, {
         type: 'pie',
         data: {
-          labels: budgets.value.map(b => b.category),
+          labels: expenseBudgets.map(b => b.category),
           datasets: [
             {
               label: 'Expenses by Category',
-              data: budgets.value.map(b => b.spent),
-              backgroundColor: ['#f87171', '#fbbf24', '#34d399']
+              data: expenseBudgets.map(b => b.spent),
+              backgroundColor: ['#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#f472b6']
             }
           ]
         },
@@ -200,7 +217,6 @@ export default {
       monthlyIncome,
       monthlyExpenses,
       budgets,
-      goals,
       recentTransactions,
       lineChart,
       pieChart
