@@ -3,7 +3,7 @@ import Budget from "../models/Budget.js";
 
 const router = express.Router();
 
-// Get all budgets
+// Get budgets
 router.get("/", async (req, res) => {
   try {
     const budgets = await Budget.find();
@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Add a budget
+// Add budget
 router.post("/", async (req, res) => {
   console.log("📩 Received data:", req.body);
   try {
@@ -28,7 +28,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Delete a budget
+// Delete budget
 router.delete("/:id", async (req, res) => {
   try {
     await Budget.findByIdAndDelete(req.params.id);

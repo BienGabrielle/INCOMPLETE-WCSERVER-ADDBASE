@@ -15,11 +15,11 @@ const budgetSchema = new mongoose.Schema({
     default: 0,
   },
 }, {
-  timestamps: true, // optional, adds createdAt & updatedAt
+  timestamps: true, // createdAt & updatedAt
 });
 
 
-// Note: MongoDB documents use '_id' as the primary key. Frontend should reference '_id' for budget objects.
+// Use '_id' for budget ID
 const Budgets = mongoose.model("Budgets", budgetSchema, "Budgets");
 
 export default Budgets;

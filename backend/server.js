@@ -6,14 +6,15 @@ import userRoutes from "./routes/userRoutes.js"; // routes
 import transactionRoutes from "./routes/transactionRoutes.js";
 import budgetRoutes from "./routes/budgetRoutes.js";
 
+// Load .env
 dotenv.config();
 
 const app = express();
 
-// ✅ Allow JSON requests
+// Allow JSON requests
 app.use(express.json());
 
-// ✅ Fix CORS (important for frontend-backend connection)
+// CORS(important for frontend-backend connection)
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -23,7 +24,7 @@ app.use(
 );
 
 
-// ✅ MongoDB connection
+//MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -32,7 +33,7 @@ mongoose
   .then(() => console.log("MongoDB connected successfully"))
   .catch((error) => console.error("MongoDB connection failed:", error));
 
-// ✅ API Routes
+//API Routes
 app.use("/api/users", userRoutes);
 
 app.use("/api/transactions", transactionRoutes);
@@ -40,6 +41,6 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/Budgets", budgetRoutes);
 
 
-// ✅ Start server
+//Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Transaction schema
 const transactionSchema = new mongoose.Schema({
   date: { type: String, required: true },
   category: { type: String, required: true },

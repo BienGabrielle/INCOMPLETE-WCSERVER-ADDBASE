@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// User schema
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -16,7 +17,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "Password is required"],
     },
   },
-  { timestamps: true } // adds createdAt and updatedAt
+  { timestamps: true } // createdAt & updatedAt
 );
 
 const User = mongoose.model("User", userSchema);

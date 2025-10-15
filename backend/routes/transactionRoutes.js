@@ -3,7 +3,7 @@ import Transaction from "../models/Transaction.js";
 
 const router = express.Router();
 
-// Get all transactions
+// Get transactions
 router.get("/", async (req, res) => {
   try {
     const transactions = await Transaction.find();
@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Add new transaction
+// Add transaction
 router.post("/", async (req, res) => {
   try {
     const { date, category, type, amount } = req.body;
