@@ -4,13 +4,19 @@ BudgetWise is a simple web app built with the MEVN stack (MongoDB, Express, Vue,
 
 Features:
 Register and log in securely
+
 Add, view, and delete transactions
+
 Set and manage budgets per category
+
 Organized and user-friendly design
 
 Frontend: Vue.js (Vite)
+
 Backend: Node.js, Express.js
+
 Database: MongoDB (via Mongoose)
+
 Tools: Axios, dotenv, cors, bcryptjs, nodemon
 
 Installation Guide
