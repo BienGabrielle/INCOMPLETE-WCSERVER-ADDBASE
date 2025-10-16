@@ -39,8 +39,13 @@ http://localhost:5173
 
 
 Contributors:
+
 Antonio, Aaron Joseph
+
 Cayanan, Bart Andrew
+
 Gonzales, John Patrick
+
 Martinez, Sean Paolo
+
 Pangilinan, Bien Gabrielle
